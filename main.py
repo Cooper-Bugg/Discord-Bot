@@ -1,6 +1,8 @@
 import os
 import discord
 from discord.ext import commands
+import aiohttp
+import json
 
 # Read token from the enviroment
 TOKEN = os.getenv("DISCORD_TOKEN")
@@ -19,17 +21,103 @@ bot = commands.Bot(command_prefix = "!", intents = intents)
 async def on_ready():
     print(f"Logged in as {bot.user} (id: {bot.user.id})")
 
+# === Helper Function for API Requests ===
+async def fetch_json(session, url, headers = None, params = None):
+    # Generic async function to fetch JSON data from a URL
+    async with session.get(url, headers = headers, params = params) as response:
+        # If its not exactly 200, assume failure or unexpected format
+        if response.status != 200:
+            # Print error for debugging
+            response_text = await response.text()
+            print(f"Error {response.status} from {url}: {response_text[:100]}...")
+            return None
+        try:
+            return await response.json()
+        except aiohttp.ContentTypeError:
+            # Fallback if the status is 200 but the body is not JSON, rarely happens
+            print(f"Error: Status 200, but response body was not valid JSON from {url}.")
+            return None
+
+async def get_weather_data(city_name: str):
+    """
+    Handle the 3-step process: Geocoding -> Gridpoint -> Forecast
+    Returns the forecast text or an error message
+    """
+    # Required User-Agent for Nominatim (Geocoding) and NWS (National Weather Service)
+    HEADERS = {'User-Agent': 'Bugg_Bot/1.0 (cooperehuntington@gmail.com)'}
+
+    async with aiohttp.ClientSession(headers = HEADERS) as session:
+        # Step 1 Nominatim (City -> Lat/Lon)
+        nominatim_url = 'https://nominatim.openstreetmap.org/search'
+        nominatim_params = {'q': city_name, 'format': 'json', 'limit': 1}
+
+        geocode_data = await fetch_json(session, nominatim_url, params = nominatim_params)
+
+        if not geocode_data: # Checking for an empty list/data
+            return f"Error, I could not find a location for **{city_name}**."
+
+        #JSON Parsing, extracting Lat/Lon from the first result
+        latitude = geocode_data[0].get('lat')
+        longitude = geocode_data[0].get('lon')
+
+        if not latitude and longitude:
+            return f"Could not retrieve coordinates for **{city_name}**"
+        
+        # Step 2 NWS Gridpoint (Lat/Lon -> Forecast URL)'
+        nws_grid_url = f"https://api.weather.gov/points/{latitude},{longitude}"
+        grid_data = await fetch_json(session, nws_grid_url)
+
+        if not grid_data or 'properties' not in grid_data:
+            return f"National Weather Service data unavailable for coordinates ({latitude}, {longitude})."
+        
+        if 'forecast' not in grid_data['properties']:
+            return f"National Weather Service data available, but no forecast URL found for this location."
+
+        forecast_url = grid_data['properties']['forecast']
+
+        # Step 3 NWS Final Forecast Request
+        forecast_data = await fetch_json(session, forecast_url)
+
+        if not forecast_data or 'periods' not in forecast_data.get('properties', {}):
+            return f"Final forecast data could not be retrieved."
+        
+        # JSON parsing extract the first period's detailed forecast
+        first_period = forecast_data['properties']['periods'][0]
+
+        # You get the name (e.g. "Tonight") and the forecast text
+        period_name = first_period.get('name', 'Forecast Period')
+        detailed_forecast = first_period.get('detailedForecast', 'No detailed forecast available.')
+
+        # Final output
+        return (f"**Forecast for {period_name} near {city_name}**: \n"
+                f"{detailed_forecast}")
+
 # === Test Commands ===
 @bot.command()
 async def ping(ctx):
     # Simple test command that responds with "Pong!"
     await ctx.send("Pong!")
 
-# === [] Commands ===
+# === Utility Commands ===
 @bot.command()
 async def hello(ctx):
     # Greets the user
     await ctx.send(f"Hello, {ctx.author.mention}!")
+
+@bot.command(name = 'weather')
+async def weather_command(ctx, *, city_name: str):
+    # Get the current weather forecast for a specified US city
+    # The '*' ensures the entire city is captured (e.g. "San Francisco")
+
+    if not city_name:
+        await("Please tell me a US city! Example '!weather Dallas'")
+        return
+    
+    # Get data from helper function
+    forecast_message = await get_weather_data(city_name)
+
+    # Send result back
+    await ctx.send(forecast_message)
 
 if __name__ == "__main__":
     bot.run(TOKEN)
