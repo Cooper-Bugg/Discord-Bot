@@ -49,16 +49,32 @@ async def get_weather_data(city_name: str):
     async with aiohttp.ClientSession(headers = HEADERS) as session:
         # Step 1 Nominatim (City -> Lat/Lon)
         nominatim_url = 'https://nominatim.openstreetmap.org/search'
-        nominatim_params = {'q': city_name, 'format': 'json', 'limit': 1}
+        nominatim_params = {'q': city_name, 'format': 'json', 'limit': 1, 'countrycodes': 'us', 'addressdetails': 1}
 
         geocode_data = await fetch_json(session, nominatim_url, params = nominatim_params)
 
         if not geocode_data: # Checking for an empty list/data
-            return f"Error, I could not find a location for **{city_name}**."
+            return f"I couldn't locate **{city_name}** in the United States. Make sure it's spelled correctly and is a US city!"
 
-        #JSON Parsing, extracting Lat/Lon from the first result
-        latitude = geocode_data[0].get('lat')
-        longitude = geocode_data[0].get('lon')
+        # JSON Parsing
+        first_result = geocode_data[0]
+        address = first_result.get('address', {})
+
+        # Get City (Try city -> town -> village -> fallback to input)
+        city = address.get('city') or address.get('town') or address.get('village') or city_name
+
+        # Get State
+        state = address.get('state', '')
+        
+        # Force "City, State" format
+        if state:
+            location_display = f"{city}, {state}"
+        else:
+            location_display = city
+        
+        # Get coordinates
+        latitude = first_result.get('lat')
+        longitude = first_result.get('lon')
 
         if not latitude and longitude:
             return f"Could not retrieve coordinates for **{city_name}**"
@@ -68,8 +84,8 @@ async def get_weather_data(city_name: str):
         grid_data = await fetch_json(session, nws_grid_url)
 
         if not grid_data or 'properties' not in grid_data:
-            return f"National Weather Service data unavailable for coordinates ({latitude}, {longitude})."
-        
+            return f"National Weather Service data unavailable for {city_name}."
+
         if 'forecast' not in grid_data['properties']:
             return f"National Weather Service data available, but no forecast URL found for this location."
 
@@ -89,7 +105,7 @@ async def get_weather_data(city_name: str):
         detailed_forecast = first_period.get('detailedForecast', 'No detailed forecast available.')
 
         # Final output
-        return (f"**Forecast for {period_name} near {city_name}**: \n"
+        return (f"**Forecast for {period_name} near {location_display}**: \n"
                 f"{detailed_forecast}")
 
 # === Test Commands ===
@@ -107,12 +123,7 @@ async def hello(ctx):
 @bot.command(name = 'weather')
 async def weather_command(ctx, *, city_name: str):
     # Get the current weather forecast for a specified US city
-    # The '*' ensures the entire city is captured (e.g. "San Francisco")
-
-    if not city_name:
-        await("Please tell me a US city! Example '!weather Dallas'")
-        return
-    
+    # The '*' ensures the entire city is captured (e.g. "San Francisco")   
     # Get data from helper function
     forecast_message = await get_weather_data(city_name)
 
