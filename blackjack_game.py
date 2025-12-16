@@ -21,17 +21,18 @@ class BlackjackGame:
 
         random.shuffle(deck)
         return deck
-""""    
+   
     def add_player(self, user_id):
         # Add a player and deal them two cards
         pass # Implementation required
 
     def get_hand_value(self, hand):
         # Calculate the score, handling Aces (1 or 11)
-
         
+
+     """   
     def dealer_play(self):
         # Logic for the dealer to hit until 17 or more
         pass # Implementation required
-"""
+        """
     # === TESTING ===
