@@ -30,14 +30,14 @@ class BlackjackGame:
         self.current_turn = None # The ID of the player whose turn it is
         self.rank_values = {'2':2, '3':3, '4':4, '5':5, '6':6, '7':7, '8':8, '9':9, '10':10, # Gives each card its value
                             'Jack':10, 'Queen':10, 'King':10, 'Ace':11}
-        self.hidden_card = '❓'  # Emoji for dealer's face-down card
+        self.hidden_card = '?'  # Emoji for dealer's face-down card 
 
 
 
     def _create_shuffled_deck(self):
         # A helper method to create and shuffle the 52 cards
         rank = ['2','3','4','5','6','7','8','9','10','Jack','Queen','King','Ace']
-        suits = ['♠️', '♥️', '♦️', '♣️'] # Spades, Hearts, Diamonds, Clubs
+        suits = ['♤', '♡', '♢', '♧'] # Spades, Hearts, Diamonds, Clubs
         deck = []
         
         for x in rank:

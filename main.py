@@ -108,7 +108,7 @@ async def blackjack(ctx):
         return
 
     # Create and store the game
-    game = BlackjackGame(ctx.channel.id, dealer_id=bot.user.id)
+    game = BlackjackGame(ctx.channel.id, dealer_id = bot.user.id)
     active_games[ctx.channel.id] = game
     
     # Add the player who started it
@@ -119,7 +119,7 @@ async def blackjack(ctx):
     dealer_hand_str = game.display_hand(game.dealer_hand, hide_second_card=True)
     
     await ctx.send(f"**Game Started!**\n"
-                   f"**{ctx.author.name}**: {player_hand_str} ({game.get_hand_value(hand)})\n"
+                   f"**{ctx.author.display_name}**: {player_hand_str} ({game.get_hand_value(hand)})\n"
                    f"**Dealer**: {dealer_hand_str}\n"
                    f"Type `!hit`, `!stand`, or `!join`.")
 
@@ -138,7 +138,7 @@ async def join(ctx):
     hand = game.add_player(ctx.author.id)
     player_hand_str = game.display_hand(hand)
 
-    await ctx.send(f"**{ctx.author.name}** joined!\n"
+    await ctx.send(f"**{ctx.author.display_name}** joined!\n"
                    f"Your Hand: {player_hand_str} ({game.get_hand_value(hand)})")
 
 @bot.command()
@@ -152,7 +152,7 @@ async def hit(ctx):
     # Check if they can play
     current_data = game.players[ctx.author.id]
     if current_data[1] != "playing":
-        await ctx.send(f"{ctx.author.name}, your turn is over.")
+        await ctx.send(f"{ctx.author.display_name}, your turn is over.")
         return
 
     # Deal a card
@@ -167,12 +167,12 @@ async def hit(ctx):
 
     if new_score > 21:
         current_data[1] = "busted"
-        await ctx.send(f"**{ctx.author.name}** hits.. {hand_str} (**{new_score}**) -> BUSTED!")
+        await ctx.send(f"**{ctx.author.display_name}** hits.. {hand_str} (**{new_score}**) -> BUSTED!")
         # If everyone is done, end the game
         if game.everyone_is_done():
             await end_game(ctx, game)
     else:
-        await ctx.send(f"**{ctx.author.name}** hits.. {hand_str} (**{new_score}**)")
+        await ctx.send(f"**{ctx.author.display_name}** hits.. {hand_str} (**{new_score}**)")
 
 @bot.command()
 async def stand(ctx):
@@ -186,7 +186,7 @@ async def stand(ctx):
     game.players[ctx.author.id][1] = "stood"
     score = game.players[ctx.author.id][2]
     
-    await ctx.send(f"**{ctx.author.name}** stands with **{score}**.")
+    await ctx.send(f"**{ctx.author.display_name}** stands with **{score}**.")
 
     # Check if everyone is waiting for dealer
     if game.everyone_is_done():
