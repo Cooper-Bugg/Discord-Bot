@@ -1,0 +1,19 @@
+{
+    "_comment": "═══════════════════════════════════════════════════════════════════════════",
+    "_description": "Living Artifact State - Evolves based on bot usage patterns",
+    "_stats": "chaos: gambling/risk | greed: market checks | shadow: nighttime usage",
+    "_comment2": "═══════════════════════════════════════════════════════════════════════════",
+    "name": "The Cracked Compass",
+    "ageDays": 0,
+    "mood": "Dormant",
+    "traits": [
+        "Humming",
+        "Cold"
+    ],
+    "hiddenStats": {
+        "chaos": 40,
+        "greed": 0,
+        "shadow": 0
+    },
+    "lastInteraction": "2025-12-18 07:37:09.610951"
+}
