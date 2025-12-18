@@ -2,13 +2,24 @@ import aiohttp
 import json
 
 """
-Weather API Module
+Bugg Bot - Weather API Integration Module
 
-Handles US weather forecast retrieval using:
-- Nominatim (OpenStreetMap) for geocoding city names
-- National Weather Service API for forecast data
+Handles US weather forecast retrieval using two-step process:
 
-Provides formatted weather forecasts with city and state information.
+Step 1 - Geocoding:
+- Uses Nominatim (OpenStreetMap) API to convert city names to coordinates
+- Filters results to United States only
+- Returns latitude, longitude, city name, and state
+
+Step 2 - Weather Data:
+- Uses National Weather Service (weather.gov) API for forecasts
+- Fetches forecast grid data using coordinates
+- Provides detailed forecast with temperature and conditions
+
+Main Function:
+- get_weather_data(city_name): Returns formatted weather forecast string
+
+All API calls are asynchronous using aiohttp for non-blocking operations.
 """
 
 # === Helper Function for API Requests ===
