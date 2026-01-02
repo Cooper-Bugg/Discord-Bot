@@ -45,7 +45,7 @@ class Games(commands.Cog):
     
     @commands.Cog.listener()
     async def on_ready(self):
-        print("✅ Games cog loaded")
+        print("Games cog loaded")
     
     # === Quick Games ===
     
@@ -151,7 +151,23 @@ class Games(commands.Cog):
     async def slots(self, ctx):
         """Spin the slot machine - 3 rows, middle counts!"""
         result = spin_slots()
-        await ctx.send(result)
+        # Format the slot machine display
+        output = f"🎰 **SLOT MACHINE** 🎰\n"
+        output += f"   {''.join(result['top'])}\n"
+        output += f"**[** {''.join(result['middle'])} **]**\n"
+        output += f"   {''.join(result['bottom'])}\n\n"
+        
+        # Determine outcome
+        if result['triple_jackpot']:
+            output += "🌟💰 **TRIPLE JACKPOT!!!** 💰🌟"
+        elif result['middle_jackpot']:
+            output += "💰 **JACKPOT!** 💰"
+        elif result['partial_win']:
+            output += "✨ **Partial Win!** ✨"
+        else:
+            output += "😔 No win this time..."
+        
+        await ctx.send(output)
         
         # Artifact hook: +1 chaos for gambling
         if hasattr(self.bot, 'artifact'):

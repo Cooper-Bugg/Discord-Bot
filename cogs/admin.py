@@ -23,7 +23,7 @@ class Admin(commands.Cog):
     
     @commands.Cog.listener()
     async def on_ready(self):
-        print("✅ Admin cog loaded")
+        print("Admin cog loaded")
     
     @commands.command()
     @commands.is_owner()
@@ -31,23 +31,23 @@ class Admin(commands.Cog):
         """Load a cog"""
         try:
             await self.bot.load_extension(f'cogs.{cog}')
-            await ctx.send(f"✅ Loaded cog: **{cog}**")
+            await ctx.send(f"Loaded cog: **{cog}**")
         except Exception as e:
-            await ctx.send(f"❌ Failed to load **{cog}**: {e}")
+            await ctx.send(f"Failed to load **{cog}**: {e}")
     
     @commands.command()
     @commands.is_owner()
     async def unload(self, ctx, cog: str):
         """Unload a cog"""
         if cog.lower() == 'admin':
-            await ctx.send("❌ Cannot unload the admin cog!")
+            await ctx.send("Cannot unload the admin cog!")
             return
         
         try:
             await self.bot.unload_extension(f'cogs.{cog}')
-            await ctx.send(f"✅ Unloaded cog: **{cog}**")
+            await ctx.send(f"Unloaded cog: **{cog}**")
         except Exception as e:
-            await ctx.send(f"❌ Failed to unload **{cog}**: {e}")
+            await ctx.send(f"Failed to unload **{cog}**: {e}")
     
     @commands.command()
     @commands.is_owner()
@@ -55,9 +55,9 @@ class Admin(commands.Cog):
         """Reload a cog (hot reload)"""
         try:
             await self.bot.reload_extension(f'cogs.{cog}')
-            await ctx.send(f"🔄 Reloaded cog: **{cog}**")
+            await ctx.send(f"Reloaded cog: **{cog}**")
         except Exception as e:
-            await ctx.send(f"❌ Failed to reload **{cog}**: {e}")
+            await ctx.send(f"Failed to reload **{cog}**: {e}")
     
     @commands.command()
     @commands.is_owner()
@@ -74,11 +74,11 @@ class Admin(commands.Cog):
             except Exception as e:
                 failed.append(f"{cog_name}: {e}")
         
-        msg = "🔄 **Reload Complete**\n"
+        msg = "**Reload Complete**\n"
         if success:
-            msg += f"✅ Success: {', '.join(success)}\n"
+            msg += f"Success: {', '.join(success)}\n"
         if failed:
-            msg += f"❌ Failed:\n" + "\n".join(failed)
+            msg += f"Failed:\n" + "\n".join(failed)
         
         await ctx.send(msg)
     

@@ -27,7 +27,7 @@ class Math(commands.Cog):
     
     @commands.Cog.listener()
     async def on_ready(self):
-        print("✅ Math cog loaded")
+        print("Math cog loaded")
     
     @commands.command()
     async def plot(self, ctx, *, formula: str):
