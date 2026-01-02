@@ -52,7 +52,7 @@ class Monitoring(commands.Cog):
     
     @commands.Cog.listener()
     async def on_ready(self):
-        print("✅ Monitoring cog loaded")
+        print("Monitoring cog loaded")
     
     @commands.Cog.listener()
     async def on_command_completion(self, ctx):

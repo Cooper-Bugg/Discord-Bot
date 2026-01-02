@@ -257,7 +257,7 @@ class PokemonBattle:
         Returns: (is_game_over, winner_side)
         """
         # Import here to avoid circular imports
-        from poke_api import get_type_effectiveness
+        from .poke_api import get_type_effectiveness
         
         # Determine who is the attacker and who is the defender based on the input
         if attacker_side == "team_a":

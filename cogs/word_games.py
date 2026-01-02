@@ -44,7 +44,7 @@ class WordGames(commands.Cog):
     
     @commands.Cog.listener()
     async def on_ready(self):
-        print("✅ WordGames cog loaded")
+        print("WordGames cog loaded")
     
     @commands.Cog.listener()
     async def on_message(self, message):

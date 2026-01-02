@@ -57,7 +57,7 @@ class Timers(commands.Cog):
     
     @commands.Cog.listener()
     async def on_ready(self):
-        print("✅ Timers cog loaded")
+        print("Timers cog loaded")
     
     @commands.command(aliases=['remind', 'timer'])
     async def remindme(self, ctx, time_str: str, *, task: str = "Something important!"):

@@ -31,7 +31,7 @@ class Utility(commands.Cog):
     
     @commands.Cog.listener()
     async def on_ready(self):
-        print("✅ Utility cog loaded")
+        print("Utility cog loaded")
     
     @commands.command()
     async def ping(self, ctx):

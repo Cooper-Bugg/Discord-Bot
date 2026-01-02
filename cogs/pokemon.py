@@ -55,7 +55,7 @@ class Pokemon(commands.Cog):
     
     @commands.Cog.listener()
     async def on_ready(self):
-        print(f"✅ Pokemon cog loaded")
+        print(f"Pokemon cog loaded")
     
     @commands.command()
     async def battle(self, ctx, difficulty: str = "normal"):

@@ -25,7 +25,7 @@ class APIs(commands.Cog):
     
     @commands.Cog.listener()
     async def on_ready(self):
-        print("✅ APIs cog loaded")
+        print("APIs cog loaded")
     
     @commands.command(name='weather')
     async def weather_command(self, ctx, *, city_name: str):
@@ -58,7 +58,7 @@ class APIs(commands.Cog):
         trivia_data = await get_trivia_question()
         
         if not trivia_data:
-            await ctx.send("❌ Trivia API is down! Try again later.")
+            await ctx.send("Trivia API is down! Try again later.")
             return
         
         # Create the answer options display

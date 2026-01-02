@@ -41,7 +41,7 @@ class BoardGames(commands.Cog):
     
     @commands.Cog.listener()
     async def on_ready(self):
-        print("✅ BoardGames cog loaded")
+        print("BoardGames cog loaded")
     
     # === Blackjack Commands ===
     
