@@ -1,6 +1,6 @@
 # Bugg Bot - Discord Bot
 
-A comprehensive multi-purpose Discord bot built with discord.py featuring weather forecasts, games, mathematical visualizations, Pokémon battles, and a living artifact system.
+A comprehensive multi-purpose Discord bot built with discord.py featuring weather forecasts, games, Pokémon battles, and productivity tools.
 
 ## Features
 
@@ -33,21 +33,6 @@ A comprehensive multi-purpose Discord bot built with discord.py featuring weathe
 - Guess the Number (1-100 with hints)
 - Russian roulette (voice channel kick game)
 - Mock text transformer
-
-### Math & Visualization
-- Mathematical formula plotting
-- Mandelbrot fractal set generation
-- Julia set fractals (custom complex constants)
-- 3D spinning cube animation
-- Cellular warfare simulation (Conway's Game of Life)
-
-### Artifact System
-A living, evolving entity that changes based on bot usage:
-- **Chaos stat** - Increased by gambling (slots, roulette)
-- **Greed stat** - Increased by market checks
-- **Shadow stat** - Increased by nighttime usage (12am-6am)
-- Procedurally generated visuals that evolve with mood changes
-- Interactive commands: touch, disturb, status
 
 ### Monitoring & Metrics
 - Bot uptime and command usage statistics
@@ -95,13 +80,6 @@ A living, evolving entity that changes based on bot usage:
 ### Weather & Space
 - `!weather <city>` - US city weather forecast
 - `!space [YYYY-MM-DD]` - NASA's Astronomy Picture of the Day
-
-### Math & Visualization
-- `!plot <formula>` - Plot mathematical formulas
-- `!fractal` - Generate Mandelbrot set
-- `!julia [c_real c_imag]` - Generate Julia set
-- `!cube` - 3D spinning cube animation
-- `!war` - Cellular warfare simulation (Glider vs Beacon)
 
 ### Timers
 - `!remindme <time> [task]` - Set a reminder (e.g., `!remindme 10m Pizza`)
@@ -158,11 +136,6 @@ A living, evolving entity that changes based on bot usage:
 - `!attack <move #>` - Use a move (1-4)
 - `!flee` - Run from battle
 
-### Artifact System
-- `!artifact_status` - View artifact state and image
-- `!touch` - Physically interact with artifact
-- `!disturb` - Force a change (high risk)
-
 ### Voice
 - `!chaos` - Shuffle voice channel members
 
@@ -212,20 +185,16 @@ Discord-Bot/
 │   ├── word_games.py            # Word games (hangman, wordle, akinator)
 │   ├── pokemon.py               # Pokemon battle system
 │   ├── apis.py                  # External APIs (weather, space, trivia)
-│   ├── math.py                  # Mathematical visualizations
 │   ├── utility.py               # Server utilities and info commands
 │   ├── timers.py                # Reminders and pomodoro timer
-│   ├── monitoring.py            # Bot metrics and artifact system
+│   ├── monitoring.py            # Bot metrics and diagnostics
 │   └── admin.py                 # Hot reloading and cog management
 ├── helper/                      # Implementation modules
 │   ├── games.py                 # Game logic classes
 │   ├── weather_api.py           # Weather API integration
 │   ├── nasa_api.py              # NASA API integration
 │   ├── poke_api.py              # Pokémon API integration
-│   ├── trivia_api.py            # Trivia API integration
-│   ├── math_fun.py              # Mathematical visualizations
-│   └── artifact_system.py       # Living artifact system
-├── artifact.json                # Artifact state persistence
+│   └── trivia_api.py            # Trivia API integration
 └── README.md                    # This file
 ```
 
@@ -253,14 +222,6 @@ The bot uses a **modular cog system** for organization and hot-reloading:
 4. No bot restart required!
 
 ## How Systems Work
-
-### Artifact Evolution
-The artifact silently tracks bot usage and evolves:
-- **Chaos:** Gambling commands (slots, roulette) → "Unstable" mood
-- **Greed:** Market checks → "Voracious" mood  
-- **Shadow:** Commands used 12am-6am → "Eerie" mood
-
-When any stat exceeds 50, the artifact's mood, traits, and visual appearance change dramatically.
 
 ### Game Logic
 All game logic is separated into `helper/games.py` for maintainability:

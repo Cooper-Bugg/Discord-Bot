@@ -64,17 +64,11 @@ class Utility(commands.Cog):
 **Pokémon:**
 `!battle [difficulty]` `!challenge @user` `!attack [move]` `!flee`
 
-**Math & Art:**
-`!plot <formula>` `!fractal` `!julia [c_real] [c_imag]` `!cube` `!war`
-
 **APIs:**
 `!weather <city>` `!space [date]` `!trivia`
 
 **Timers:**
 `!remindme <time> <task>` `!pomodoro [minutes]` `!stop`
-
-**Artifact:**
-`!artifact_status` `!touch` `!disturb`
 
 **Admin (Owner Only):**
 `!load <cog>` `!unload <cog>` `!reload <cog>` `!reloadall` `!cogs`

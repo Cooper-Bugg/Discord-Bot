@@ -1,5 +1,5 @@
 """
-Monitoring & Artifact Cog
+Monitoring Cog
 
 Bot monitoring and diagnostic commands:
 - metrics: Shows top commands, uptime, and error counts
@@ -9,13 +9,8 @@ Bot monitoring and diagnostic commands:
 - ratelimit: Test command to demonstrate cooldowns
 - market: Fetches CS:GO item prices from Steam Market
 
-Artifact system commands:
-- artifact_status: Shows the artifact's current state and image
-- touch: Interact physically with the artifact
-- disturb: Force a change in the artifact (high risk)
-
 This cog also handles:
-- on_command_completion: Tracks command usage and artifact updates
+- on_command_completion: Tracks command usage statistics
 - on_command_error: Captures error traces and provides user-friendly messages
 
 State tracking:
@@ -32,12 +27,10 @@ from collections import Counter
 import datetime
 import urllib.parse
 import aiohttp
-import random
-from helper.artifact_system import artifact
 
 
 class Monitoring(commands.Cog):
-    """Bot monitoring, diagnostics, and artifact system"""
+    """Bot monitoring and diagnostics"""
     
     def __init__(self, bot):
         self.bot = bot
@@ -56,15 +49,9 @@ class Monitoring(commands.Cog):
     
     @commands.Cog.listener()
     async def on_command_completion(self, ctx):
-        """ Track command usage statistics and update artifact """
+        """ Track command usage statistics """
         command_name = ctx.command.name
         self.bot.command_counts[command_name] += 1
-        
-        # Silently update artifact based on command usage
-        # Night time check (Midnight to 6 AM)
-        currentHour = datetime.datetime.now().hour
-        if 0 <= currentHour < 6:
-            artifact.modifyStat("shadow", 1)
     
     @commands.Cog.listener()
     async def on_command_error(self, ctx, error):
@@ -213,57 +200,6 @@ class Monitoring(commands.Cog):
                 embed.set_footer(text="Data from Steam Community Market")
                 
                 await ctx.send(embed=embed)
-                
-                # Silently update artifact (market checking = greed)
-                artifact.modifyStat("greed", 1)
-    
-    # === Artifact Commands ===
-    
-    @commands.command()
-    async def artifact_status(self, ctx):
-        """ Shows the current state and visualizes the artifact """
-        state = artifact.state
-        
-        # Generate the procedural image
-        image_buffer = artifact.generateImage()
-        file = discord.File(image_buffer, filename="artifact.png")
-
-        embed = discord.Embed(title=f"🔮 {state['name']}", color=discord.Color.purple())
-        embed.add_field(name="Mood", value=state['mood'], inline=True)
-        embed.add_field(name="Age", value=f"{state['ageDays']} days", inline=True)
-        embed.add_field(name="Traits", value=", ".join(state['traits']), inline=False)
-        embed.set_image(url="attachment://artifact.png")
-        embed.set_footer(text="It seems to be waiting for something...")
-
-        await ctx.send(embed=embed, file=file)
-    
-    @commands.command()
-    async def touch(self, ctx):
-        """ Interact physically with the artifact """
-        # Get a random response based on current mood
-        response = artifact.getRandomTouchResponse()
-        
-        # Random chance to increase a stat (The butterfly effect)
-        if random.random() < 0.3:
-            artifact.modifyStat("chaos", 1)
-            
-        await ctx.send(f"👉 {response}")
-    
-    @commands.command()
-    async def disturb(self, ctx):
-        """ Force a change. High risk """
-        # 50% chance to reset stats, 50% chance to spike Chaos
-        outcome = random.choice(["calm", "anger"])
-        
-        if outcome == "calm":
-            artifact.state["hiddenStats"] = {"chaos": 0, "greed": 0, "shadow": 0}
-            artifact.saveState()
-            response = artifact.getRandomDisturbOutcome("calm")
-            await ctx.send(response)
-        else:
-            artifact.modifyStat("chaos", 20)
-            response = artifact.getRandomDisturbOutcome("anger")
-            await ctx.send(response)
 
 
 async def setup(bot):

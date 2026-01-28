@@ -168,10 +168,6 @@ class Games(commands.Cog):
             output += "😔 No win this time..."
         
         await ctx.send(output)
-        
-        # Artifact hook: +1 chaos for gambling
-        if hasattr(self.bot, 'artifact'):
-            self.bot.artifact.modifyStat('chaos', 1)
     
     @commands.command()
     async def roulette(self, ctx):
@@ -186,17 +182,10 @@ class Games(commands.Cog):
             try:
                 await ctx.author.move_to(None)
                 await ctx.send(f"{result} {ctx.author.mention} has been kicked from voice!")
-                
-                # Artifact hook: +3 chaos for losing roulette
-                if hasattr(self.bot, 'artifact'):
-                    self.bot.artifact.modifyStat('chaos', 3)
             except:
                 await ctx.send(f"{result} (Couldn't kick - check permissions)")
         else:
             await ctx.send(result)
-            # Artifact hook: +1 chaos for surviving
-            if hasattr(self.bot, 'artifact'):
-                self.bot.artifact.modifyStat('chaos', 1)
     
     @commands.command()
     async def duel(self, ctx, opponent: discord.Member):

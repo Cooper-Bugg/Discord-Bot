@@ -48,7 +48,7 @@ async def get_weather_data(city_name: str):
     HEADERS = {'User-Agent': 'Bugg_Bot/1.0 (cooperehuntington@gmail.com)'}
 
     async with aiohttp.ClientSession(headers = HEADERS) as session:
-        # Step 1 Nominatim (City -> Lat/Lon)
+        # Nominatim (City -> Lat/Lon)
         nominatim_url = 'https://nominatim.openstreetmap.org/search'
         nominatim_params = {'q': city_name, 'format': 'json', 'limit': 1, 'countrycodes': 'us', 'addressdetails': 1}
 
@@ -80,7 +80,7 @@ async def get_weather_data(city_name: str):
         if not latitude and longitude:
             return f"Could not retrieve coordinates for **{city_name}**"
         
-        # Step 2 NWS Gridpoint (Lat/Lon -> Forecast URL)'
+        # NWS Gridpoint (Lat/Lon -> Forecast URL)'
         nws_grid_url = f"https://api.weather.gov/points/{latitude},{longitude}"
         grid_data = await fetch_json(session, nws_grid_url)
 
@@ -92,7 +92,7 @@ async def get_weather_data(city_name: str):
 
         forecast_url = grid_data['properties']['forecast']
 
-        # Step 3 NWS Final Forecast Request
+        # NWS Final Forecast Request
         forecast_data = await fetch_json(session, forecast_url)
 
         if not forecast_data or 'periods' not in forecast_data.get('properties', {}):

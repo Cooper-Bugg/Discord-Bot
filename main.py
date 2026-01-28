@@ -18,15 +18,14 @@ Cog Structure:
   • word_games.py  - Word games (hangman, wordle, akinator, typerace)
   • pokemon.py     - Pokemon battle system
   • apis.py        - External APIs (weather, space, trivia)
-  • math.py        - Mathematical visualizations
   • utility.py     - Server utilities and info commands
   • timers.py      - Reminders and pomodoro
-  • monitoring.py  - Bot metrics and artifact system
+  • monitoring.py  - Bot metrics and diagnostics
   • admin.py       - Hot reloading and cog management
 
 Helper Modules (in helper/ folder):
   • games.py, poke_api.py, nasa_api.py, weather_api.py,
-    trivia_api.py, math_fun.py, artifact_system.py
+    trivia_api.py
 
 Features:
     Hot reloading - Update cogs without restarting bot
@@ -76,10 +75,9 @@ async def on_ready():
 # - word_games.py: hangman, quithangman, wordle, guess, quitwordle, akinator, quitakinator, typerace, quittyperace
 # - pokemon.py: battle, attack, challenge, accept, flee
 # - apis.py: weather, space, trivia
-# - math.py: plot, fractal, julia, cube, war
 # - utility.py: ping, commands, purge, translate, serverinfo, userinfo, avatar, fakeping, chaos, mock
 # - timers.py: remindme, pomodoro, stop
-# - monitoring.py: metrics, lasterror, health, shardinfo, ratelimit, market, artifact_status, touch, disturb
+# - monitoring.py: metrics, lasterror, health, shardinfo, ratelimit, market
 
 # === Main Entry Point ===
 async def main():
