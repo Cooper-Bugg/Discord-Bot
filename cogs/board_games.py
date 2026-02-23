@@ -2,7 +2,7 @@
 Board Games Cog
 
 Commands for multi-turn board and card games:
-- Blackjack: blackjack, join, hit, stand, deal, quit
+- Blackjack: blackjack, join, hit, stand, double, split, hands, deal, quit
 - Death Roll: deathroll, drjoin, drroll, drquit
 - Tic-Tac-Toe: tictactoe, move
 - Connect Four: connect4, drop
@@ -44,7 +44,7 @@ class BoardGames(commands.Cog):
         print("BoardGames cog loaded")
     
     # === Blackjack Commands ===
-    
+
     @commands.command(name='blackjack')
     async def blackjack(self, ctx):
         """Start a blackjack game"""
@@ -52,22 +52,24 @@ class BoardGames(commands.Cog):
             await ctx.send("A game is already in progress here! Finish it first.")
             return
 
-        # Create and store the game
         game = BlackjackGame(ctx.channel.id, dealer_id=self.bot.user.id)
         self.bot.active_blackjack[ctx.channel.id] = game
-        
-        # Add the player who started it
+
         hand = game.add_player(ctx.author.id)
-        
-        # Send display
-        player_hand_str = game.display_hand(hand)
-        dealer_hand_str = game.display_hand(game.dealer_hand, hide_second_card=True)
-        
-        await ctx.send(f"**Game Started!**\n"
-                       f"**{ctx.author.display_name}**: {player_hand_str} ({game.get_hand_value(hand)})\n"
-                       f"**Dealer**: {dealer_hand_str}\n"
-                       f"Type `!hit`, `!stand`, or `!join`.")
-    
+        score = game.get_hand_value(hand)
+        dealer_str = game.display_hand(game.dealer_hand, hide_second_card=True)
+
+        msg = (f"**🃏 Blackjack Started!**\n"
+               f"**{ctx.author.display_name}**: {game.display_hand(hand)} (**{score}**)\n"
+               f"**Dealer**: {dealer_str}\n")
+
+        if game.is_natural_blackjack(ctx.author.id):
+            msg += "🌟 **Natural Blackjack!** Wait for other players or type `!stand`."
+        else:
+            msg += "Type `!hit`, `!stand`, `!double`, `!split`, or `!join`."
+
+        await ctx.send(msg)
+
     @commands.command(name='join')
     async def join(self, ctx):
         """Join an active blackjack game"""
@@ -82,11 +84,18 @@ class BoardGames(commands.Cog):
             return
 
         hand = game.add_player(ctx.author.id)
-        player_hand_str = game.display_hand(hand)
+        score = game.get_hand_value(hand)
 
-        await ctx.send(f"**{ctx.author.display_name}** joined!\n"
-                       f"Your Hand: {player_hand_str} ({game.get_hand_value(hand)})")
-    
+        msg = (f"**{ctx.author.display_name}** joined!\n"
+               f"Your Hand: {game.display_hand(hand)} (**{score}**)\n")
+
+        if game.is_natural_blackjack(ctx.author.id):
+            msg += "🌟 **Natural Blackjack!**"
+        else:
+            msg += "Type `!hit`, `!stand`, `!double`, or `!split`."
+
+        await ctx.send(msg)
+
     @commands.command(name='hit')
     async def hit(self, ctx):
         """Draw another card in blackjack"""
@@ -96,150 +105,196 @@ class BoardGames(commands.Cog):
         if ctx.author.id not in game.players:
             return
 
-        # Check if they can play
-        current_data = game.players[ctx.author.id]
-        if current_data[1] != "playing":
-            await ctx.send(f"{ctx.author.display_name}, your turn is over.")
+        if game.get_active_status(ctx.author.id) != 'playing':
+            await ctx.send(f"{ctx.author.display_name}, your current hand is done. Use `!stand` to finish or wait.")
             return
 
-        # Deal a card
-        new_card = game.deck.pop()
-        current_data[0].append(new_card)
-        
-        # Update Score
-        new_score = game.get_hand_value(current_data[0])
-        current_data[2] = new_score
+        hand, score, busted = game.hit(ctx.author.id)
+        hand_str = game.display_hand(hand)
 
-        hand_str = game.display_hand(current_data[0])
-
-        if new_score > 21:
-            current_data[1] = "busted"
-            await ctx.send(f"**{ctx.author.display_name}** hits.. {hand_str} (**{new_score}**) -> BUSTED!")
-            # If everyone is done, end the game
-            if game.everyone_is_done():
+        if busted:
+            await ctx.send(f"**{ctx.author.display_name}** hits → {hand_str} (**{score}**) 💥 **BUSTED!**")
+            # Try to advance to the next split hand
+            if game.advance_hand(ctx.author.id):
+                next_hand = game.get_active_hand(ctx.author.id)
+                p = game._p(ctx.author.id)
+                hand_num = p['active'] + 1
+                await ctx.send(f"➡️ Playing Hand {hand_num}: {game.display_hand(next_hand)} (**{game.get_hand_value(next_hand)}**)")
+            elif game.everyone_is_done():
                 await self.end_game(ctx, game)
         else:
-            await ctx.send(f"**{ctx.author.display_name}** hits.. {hand_str} (**{new_score}**)")
-    
+            await ctx.send(f"**{ctx.author.display_name}** hits → {hand_str} (**{score}**)")
+
     @commands.command(name='stand')
     async def stand(self, ctx):
-        """End your turn in blackjack"""
+        """Stand your current hand in blackjack"""
         if ctx.channel.id not in self.bot.active_blackjack:
             return
         game = self.bot.active_blackjack[ctx.channel.id]
         if ctx.author.id not in game.players:
             return
 
-        # Set status to "stood"
-        game.players[ctx.author.id][1] = "stood"
-        score = game.players[ctx.author.id][2]
-        
+        score = game.stand(ctx.author.id)
         await ctx.send(f"**{ctx.author.display_name}** stands with **{score}**.")
 
-        # Check if everyone is waiting for dealer
-        if game.everyone_is_done():
+        # Advance to next split hand if any
+        if game.advance_hand(ctx.author.id):
+            next_hand = game.get_active_hand(ctx.author.id)
+            p = game._p(ctx.author.id)
+            hand_num = p['active'] + 1
+            await ctx.send(f"➡️ Playing Hand {hand_num}: {game.display_hand(next_hand)} (**{game.get_hand_value(next_hand)}**)")
+        elif game.everyone_is_done():
             await self.end_game(ctx, game)
-    
+
+    @commands.command(name='double')
+    async def double(self, ctx):
+        """Double down: draw one card and auto-stand"""
+        if ctx.channel.id not in self.bot.active_blackjack:
+            return
+        game = self.bot.active_blackjack[ctx.channel.id]
+        if ctx.author.id not in game.players:
+            return
+
+        if not game.can_double(ctx.author.id):
+            await ctx.send("❌ You can only double down on your first two cards!")
+            return
+
+        hand, score, busted = game.double_down(ctx.author.id)
+        hand_str = game.display_hand(hand)
+
+        if busted:
+            await ctx.send(f"**{ctx.author.display_name}** doubles → {hand_str} (**{score}**) 💥 **BUSTED!**")
+        else:
+            await ctx.send(f"**{ctx.author.display_name}** doubles → {hand_str} (**{score}**) ✅ Auto-stood.")
+
+        if game.advance_hand(ctx.author.id):
+            next_hand = game.get_active_hand(ctx.author.id)
+            p = game._p(ctx.author.id)
+            hand_num = p['active'] + 1
+            await ctx.send(f"➡️ Playing Hand {hand_num}: {game.display_hand(next_hand)} (**{game.get_hand_value(next_hand)}**)")
+        elif game.everyone_is_done():
+            await self.end_game(ctx, game)
+
+    @commands.command(name='split')
+    async def split(self, ctx):
+        """Split a pair into two separate hands"""
+        if ctx.channel.id not in self.bot.active_blackjack:
+            return
+        game = self.bot.active_blackjack[ctx.channel.id]
+        if ctx.author.id not in game.players:
+            return
+
+        if not game.can_split(ctx.author.id):
+            await ctx.send("❌ You can only split two cards of the same rank!")
+            return
+
+        hand1, hand2 = game.do_split(ctx.author.id)
+        await ctx.send(
+            f"✂️ **{ctx.author.display_name}** splits!\n"
+            f"**Hand 1**: {game.display_hand(hand1)} (**{game.get_hand_value(hand1)}**)\n"
+            f"**Hand 2**: {game.display_hand(hand2)} (**{game.get_hand_value(hand2)}**)\n"
+            f"Play Hand 1 first — `!hit`, `!stand`, or `!double`."
+        )
+
+    @commands.command(name='hands')
+    async def hands(self, ctx):
+        """Show all your current blackjack hands"""
+        if ctx.channel.id not in self.bot.active_blackjack:
+            return
+        game = self.bot.active_blackjack[ctx.channel.id]
+        if ctx.author.id not in game.players:
+            await ctx.send("You're not in the game!")
+            return
+
+        p = game._p(ctx.author.id)
+        lines = []
+        for i, (hand, status, score) in enumerate(zip(p['hands'], p['statuses'], p['scores'])):
+            marker = " ← active" if i == p['active'] else ""
+            lines.append(f"**Hand {i+1}** [{status}]{marker}: {game.display_hand(hand)} (**{score}**)")
+
+        await ctx.send(f"🃏 **{ctx.author.display_name}'s hands:**\n" + "\n".join(lines))
+
     @commands.command(name='deal')
     async def deal(self, ctx):
         """Start a new round of blackjack"""
         if ctx.channel.id not in self.bot.active_blackjack:
             await ctx.send("No game running. Type `!blackjack` to start one.")
             return
-        
+
         game = self.bot.active_blackjack[ctx.channel.id]
-        
-        # Check if round is finished
+
         if not game.everyone_is_done():
             await ctx.send("Wait for the current round to finish!")
             return
-        
-        # Reset the round
+
         game.reset_round()
-        
-        # Display dealer's new hand
-        dealer_hand_str = game.display_hand(game.dealer_hand, hide_second_card=True)
-        message = f"**New Round Started!**\n**Dealer**: {dealer_hand_str}\n\n"
-        
-        # Display all players' new hands
-        for user_id, data in game.players.items():
-            hand = data[0]
-            score = data[2]
+        dealer_str = game.display_hand(game.dealer_hand, hide_second_card=True)
+        message = f"**🃏 New Round!**\n**Dealer**: {dealer_str}\n\n"
+
+        for user_id, p in game.players.items():
+            hand = p['hands'][0]
+            score = p['scores'][0]
             member = ctx.guild.get_member(user_id)
-            if member:
-                name = member.display_name
-            else:
-                try:
-                    user = await self.bot.fetch_user(user_id)
-                    name = user.name
-                except:
-                    name = "Unknown Player"
-            
-            hand_str = game.display_hand(hand)
-            message += f"**{name}**: {hand_str} ({score})\n"
-        
+            name = member.display_name if member else "Unknown"
+            message += f"**{name}**: {game.display_hand(hand)} ({score})\n"
+
         await ctx.send(message)
-    
+
     @commands.command(name='quit')
     async def quit(self, ctx):
         """Leave the blackjack game"""
         if ctx.channel.id not in self.bot.active_blackjack:
             return
-        
+
         game = self.bot.active_blackjack[ctx.channel.id]
-        
-        # Check if user is in the game
+
         if ctx.author.id not in game.players:
             await ctx.send("You're not in the game!")
             return
-        
-        # Remove player from game
+
         del game.players[ctx.author.id]
         await ctx.send(f"**{ctx.author.display_name}** left the game.")
-        
-        # Check if table is empty
+
         if len(game.players) == 0:
             del self.bot.active_blackjack[ctx.channel.id]
             await ctx.send("Game closed. No players remaining.")
-    
+
     async def end_game(self, ctx, game):
-        """Helper function to end a blackjack round"""
+        """End the round, reveal dealer, and determine winners across all hands"""
         await ctx.send("--- All players done! Dealer's Turn ---")
-        
-        # Dealer Plays Logic
+
         dealer_score = game.dealer_play()
-        dealer_hand_str = game.display_hand(game.dealer_hand)
-        
-        await ctx.send(f"**Dealer** reveals: {dealer_hand_str} (**{dealer_score}**)")
+        await ctx.send(f"**Dealer** reveals: {game.display_hand(game.dealer_hand)} (**{dealer_score}**)")
 
-        # Check Winners
         final_message = ""
-        for user_id, data in game.players.items():
-            player_score = data[2]
-            player_status = data[1]
-            
-            # Get server nickname - try multiple methods
+        for user_id, p in game.players.items():
             member = ctx.guild.get_member(user_id)
-            if member:
-                name = member.display_name
-            else:
-                # Fallback to fetching user
-                try:
-                    user = await self.bot.fetch_user(user_id)
-                    name = user.name
-                except:
-                    name = "Unknown Player"
+            try:
+                name = member.display_name if member else (await self.bot.fetch_user(user_id)).name
+            except:
+                name = "Unknown"
 
-            if player_status == "busted":
-                final_message += f"**{name}** busted! (Score: {player_score})\n"
-            elif dealer_score > 21:
-                final_message += f"**{name}** wins! Dealer busted.\n"
-            elif player_score > dealer_score:
-                final_message += f"**{name}** wins! ({player_score} vs {dealer_score})\n"
-            elif player_score == dealer_score:
-                final_message += f"**{name}** pushed (Tie).\n"
-            else:
-                final_message += f"**{name}** lost. ({player_score} vs {dealer_score})\n"
+            for i, (hand, status, score) in enumerate(zip(p['hands'], p['statuses'], p['scores'])):
+                label = f"**{name}**" if len(p['hands']) == 1 else f"**{name} (Hand {i+1})**"
+                if status == 'busted':
+                    final_message += f"{label} busted! ({score})\n"
+                elif status == 'doubled':
+                    if dealer_score > 21 or score > dealer_score:
+                        final_message += f"{label} wins with a double! ({score} vs {dealer_score}) 💰\n"
+                    elif score == dealer_score:
+                        final_message += f"{label} pushed on double. (Tie)\n"
+                    else:
+                        final_message += f"{label} lost on double. ({score} vs {dealer_score})\n"
+                elif len(p['hands'][i]) == 2 and score == 21:
+                    final_message += f"{label} 🌟 Natural Blackjack! Wins!\n"
+                elif dealer_score > 21:
+                    final_message += f"{label} wins! Dealer busted.\n"
+                elif score > dealer_score:
+                    final_message += f"{label} wins! ({score} vs {dealer_score})\n"
+                elif score == dealer_score:
+                    final_message += f"{label} pushed (Tie).\n"
+                else:
+                    final_message += f"{label} lost. ({score} vs {dealer_score})\n"
 
         await ctx.send(final_message)
         await ctx.send("Round Over! Type `!deal` to play again or `!quit` to leave.")
@@ -247,8 +302,12 @@ class BoardGames(commands.Cog):
     # === Death Roll Commands ===
     
     @commands.command(name='deathroll')
-    async def deathroll(self, ctx, ceiling: int = 100):
-        """Start a death roll game"""
+    async def deathroll(self, ctx, ceiling: int = None):
+        """Start a death roll game. Usage: !deathroll <number>"""
+        if ceiling is None:
+            await ctx.send("⚠️ You need to provide a starting number!\nUsage: `!deathroll <number>` (e.g. `!deathroll 1000`)")
+            return
+
         if ctx.channel.id in self.bot.active_deathroll:
             await ctx.send("A death roll is already active here! Finish it first with `!drquit`")
             return

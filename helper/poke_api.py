@@ -45,9 +45,15 @@ async def get_pokemon_data(pokemon_name):
                 # The API returns a list of stats, so we loop through them to find HP, Attack, etc.
                 stats = {stat['stat']['name']: stat['base_stat'] for stat in data['stats']}
                 
-                # Extract Sprite (Image) to display in the Discord Embed
-                # 'front_default' is the standard image used in games
-                sprite_url = data['sprites']['front_default']
+                # Prefer high-res official artwork; fall back to the
+                # regular front sprite if artwork is unavailable.
+                official_art = (
+                    data['sprites']
+                    .get('other', {})
+                    .get('official-artwork', {})
+                    .get('front_default')
+                )
+                sprite_url = official_art or data['sprites']['front_default']
                 
                 # Extract Pokemon types (e.g., fire, water, grass)
                 types = [t['type']['name'] for t in data['types']]

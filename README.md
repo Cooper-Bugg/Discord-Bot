@@ -1,3 +1,21 @@
+# How to Run
+
+1. Install Python 3.8+ and pip.
+2. Install dependencies:
+   ```sh
+   pip install -r requirements.txt
+   ```
+3. Set your Discord bot token as an environment variable:
+   - Windows (PowerShell):
+     ```powershell
+     $env:DISCORD_TOKEN = "your_token_here"
+     ```
+   - Or create a .env file with `DISCORD_TOKEN=your_token_here`.
+4. Run the bot:
+   ```sh
+   python main.py
+   ```
+
 # Bugg Bot - Discord Bot
 
 A comprehensive multi-purpose Discord bot built with discord.py featuring weather forecasts, games, Pokémon battles, and productivity tools.
@@ -32,14 +50,12 @@ A comprehensive multi-purpose Discord bot built with discord.py featuring weathe
 - Rock, Paper, Scissors (two players)
 - Guess the Number (1-100 with hints)
 - Russian roulette (voice channel kick game)
-- Mock text transformer
 
 ### Monitoring & Metrics
 - Bot uptime and command usage statistics
 - Health checks with latency monitoring
 - Error tracking and debugging tools
 - Shard information
-- Steam Community Market price checker
 - Rate limiting demonstrations
 
 ### Timers & Productivity
@@ -63,7 +79,6 @@ A comprehensive multi-purpose Discord bot built with discord.py featuring weathe
 - `!ping` - Test bot responsiveness
 - `!commands` - Show all available commands
 - `!purge [amount]` - Delete messages (admin only)
-- `!translate <lang> <text>` - Translate text (e.g., `!translate es Hello`)
 - `!serverinfo` - Display server statistics
 - `!userinfo [@user]` - Show user profile information
 - `!avatar [@user]` - Display user's full-size avatar
@@ -75,7 +90,6 @@ A comprehensive multi-purpose Discord bot built with discord.py featuring weathe
 - `!health` - Check bot latency and status
 - `!shardinfo` - Display shard information
 - `!ratelimit` - Test command cooldown system
-- `!market <item>` - CS:GO item prices from Steam
 
 ### Weather & Space
 - `!weather <city>` - US city weather forecast
@@ -235,7 +249,6 @@ All game logic is separated into `helper/games.py` for maintainability:
 - **Space:** NASA APOD API
 - **Pokémon:** PokéAPI with 17-type effectiveness system
 - **Trivia:** Open Trivia Database
-- **Market:** Steam Community Market API
 
 ## Contributing
 

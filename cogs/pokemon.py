@@ -58,12 +58,26 @@ class Pokemon(commands.Cog):
         print(f"Pokemon cog loaded")
     
     @commands.command()
-    async def battle(self, ctx, difficulty: str = "normal"):
+    async def battle(self, ctx, arg1: str = None, arg2: str = None):
         """ 
         Starts a PvE Battle against the computer. 
-        Usage: !battle [easy/normal/hard] 
+        Usage: !battle [pokemon_name] [easy/normal/hard]
+        You can specify a Pokémon by name, e.g.: !battle pikachu hard
+        Or skip to get a random starter: !battle normal
         """
-        
+        DIFFICULTIES = {"easy", "normal", "hard"}
+
+        # Parse arguments – arg1 can be a pokemon name or a difficulty
+        if arg1 is None:
+            pokemon_name = None
+            difficulty = "normal"
+        elif arg1.lower() in DIFFICULTIES:
+            pokemon_name = None
+            difficulty = arg1.lower()
+        else:
+            pokemon_name = arg1.lower()
+            difficulty = arg2.lower() if arg2 and arg2.lower() in DIFFICULTIES else "normal"
+
         # Determine level scaling based on difficulty input
         user_lvl = 50
         if difficulty == "easy":
@@ -73,18 +87,32 @@ class Pokemon(commands.Cog):
         else:
             cpu_lvl = 50 # Even match
 
-        await ctx.send(f"🔍 Searching for a wild Pokémon ({difficulty})...")
-
-        # Setup the User's Team with error handling and retry logic
-        starters = ["charmander", "squirtle", "bulbasaur", "pikachu"]
-        user_base = None
-        retries = 0
-        while not user_base and retries < 3:
-            try:
-                user_base = await get_pokemon_data(random.choice(starters))
-                retries += 1
-            except:
-                retries += 1
+        # === Fetch the player's Pokémon ===
+        if pokemon_name:
+            await ctx.send(f"🔍 Looking up **{pokemon_name.title()}**...")
+            user_base = await get_pokemon_data(pokemon_name)
+            if not user_base:
+                await ctx.send(
+                    f"❌ Couldn't find a Pokémon named **{pokemon_name.title()}**. "
+                    f"Check the spelling and try again!\n"
+                    f"Example: `!battle pikachu hard`"
+                )
+                return
+        else:
+            await ctx.send(f"🔍 Searching for a wild Pokémon ({difficulty})...")
+            starters = [
+                "charmander", "squirtle", "bulbasaur", "pikachu", "eevee",
+                "meowth", "psyduck", "gengar", "jigglypuff", "snorlax",
+                "machamp", "alakazam", "lapras", "vaporeon", "flareon", "jolteon"
+            ]
+            user_base = None
+            retries = 0
+            while not user_base and retries < 3:
+                try:
+                    user_base = await get_pokemon_data(random.choice(starters))
+                    retries += 1
+                except:
+                    retries += 1
         
         if not user_base:
             await ctx.send("❌ Error fetching your Pokémon. Try again later!")
@@ -145,7 +173,7 @@ class Pokemon(commands.Cog):
         
         # Set the main image to the enemy's sprite so it looks like an encounter
         embed.set_image(url=cpu_poke['image']) 
-        embed.set_footer(text="Type !attack <move number> to use a move! Example: !attack 1")
+        embed.set_footer(text="Type !attack <1-4> to use a move!  Tip: !battle pikachu hard to pick your Pokémon.")
 
         await ctx.send(embed=embed)
 
@@ -208,6 +236,10 @@ class Pokemon(commands.Cog):
 
         embed = discord.Embed(title="⚔️ Battle Log", description=log_text, color=discord.Color.blue())
         
+        # Show the enemy Pokémon's sprite on every turn
+        if p2.get('image'):
+            embed.set_thumbnail(url=p2['image'])
+
         # Update HP displays with visual bars
         p1_hp_bar = create_hp_bar(p1['hp'], p1['max_hp'])
         p2_hp_bar = create_hp_bar(p2['hp'], p2['max_hp'])

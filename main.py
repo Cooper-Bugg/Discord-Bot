@@ -2,6 +2,9 @@ import os
 import asyncio
 import discord
 from discord.ext import commands
+from dotenv import load_dotenv
+
+load_dotenv()
 
 """
 ╔═══════════════════════════════════════════════════════════════════════════╗
@@ -75,9 +78,9 @@ async def on_ready():
 # - word_games.py: hangman, quithangman, wordle, guess, quitwordle, akinator, quitakinator, typerace, quittyperace
 # - pokemon.py: battle, attack, challenge, accept, flee
 # - apis.py: weather, space, trivia
-# - utility.py: ping, commands, purge, translate, serverinfo, userinfo, avatar, fakeping, chaos, mock
+# - utility.py: ping, commands, purge, serverinfo, userinfo, avatar, fakeping, chaos, mock
 # - timers.py: remindme, pomodoro, stop
-# - monitoring.py: metrics, lasterror, health, shardinfo, ratelimit, market
+# - monitoring.py: metrics, lasterror, health, shardinfo, ratelimit
 
 # === Main Entry Point ===
 async def main():

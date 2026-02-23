@@ -28,126 +28,189 @@ Utility Functions:
 """
 
 class BlackjackGame:
+    """
+    Blackjack with full standard rules:
+    - Hit, Stand, Double Down, Split, Natural Blackjack detection
+    - Players can hold multiple hands after splitting (each played in order)
+    - Dealer hits until 17+
+
+    Player data structure per user_id:
+        {
+            'hands':    [[card, ...], ...],   # list of hands (split adds more)
+            'statuses': ['playing'|'stood'|'busted'|'doubled', ...],
+            'scores':   [int, ...],
+            'active':   int,                  # index of hand currently being played
+        }
+    """
+
     def __init__(self, channel_id, dealer_id):
         self.channel_id = channel_id
-        self.deck = self._create_shuffled_deck() # A list of (rank, suit) tuples
-        self.dealer_hand = []
-        self.dealer_hand = [self.deck.pop(), self.deck.pop()] # Immediately give the deal 2 cards
-        self.players = {} # Dictionary: {user_id: [hand, status, score]}
-        self.status = "joining" # Can be "joining", "playing", or "finished"
-        self.current_turn = None # The ID of the player whose turn it is
-        self.rank_values = {'2':2, '3':3, '4':4, '5':5, '6':6, '7':7, '8':8, '9':9, '10':10, # Gives each card its value
-                            'Jack':10, 'Queen':10, 'King':10, 'Ace':11}
-        self.hidden_card = '?'  # Emoji for dealer's face-down card 
-
-
+        self.deck = self._create_shuffled_deck()
+        self.dealer_hand = [self.deck.pop(), self.deck.pop()]
+        self.players = {}
+        self.status = "joining"
+        self.current_turn = None
+        self.rank_values = {
+            '2':2, '3':3, '4':4, '5':5, '6':6, '7':7, '8':8, '9':9, '10':10,
+            'Jack':10, 'Queen':10, 'King':10, 'Ace':11
+        }
+        self.hidden_card = '?'
 
     def _create_shuffled_deck(self):
-        # A helper method to create and shuffle the 52 cards
-        rank = ['2','3','4','5','6','7','8','9','10','Jack','Queen','King','Ace']
-        suits = ['♤', '♡', '♢', '♧'] # Spades, Hearts, Diamonds, Clubs
-        deck = []
-        
-        for x in rank:
-            for y in suits:
-                deck.append((x, y))
-
+        ranks = ['2','3','4','5','6','7','8','9','10','Jack','Queen','King','Ace']
+        suits = ['♤', '♡', '♢', '♧']
+        deck = [(r, s) for r in ranks for s in suits]
         random.shuffle(deck)
         return deck
-   
+
     def add_player(self, user_id):
-        # Add a player and deal them two cards
-        # Draw 2 cards from the deck and pop them to discard
-        card1 = self.deck.pop()
-        card2 = self.deck.pop()
+        card1, card2 = self.deck.pop(), self.deck.pop()
         hand = [card1, card2]
-
-        # Calculate score
         score = self.get_hand_value(hand)
+        self.players[user_id] = {
+            'hands': [hand],
+            'statuses': ['playing'],
+            'scores': [score],
+            'active': 0,
+        }
+        return hand
 
-        # Save to dictionary [Hand List, Status, Score]
-        self.players[user_id] = [hand, "playing", score]
+    # ── helpers ──────────────────────────────────────────────────────────────
 
-        return hand # Return hand to print later
+    def _p(self, user_id):
+        """Shortcut to get player dict."""
+        return self.players[user_id]
+
+    def get_active_hand(self, user_id):
+        p = self._p(user_id)
+        return p['hands'][p['active']]
+
+    def get_active_status(self, user_id):
+        p = self._p(user_id)
+        return p['statuses'][p['active']]
+
+    def _set_active_status(self, user_id, status):
+        p = self._p(user_id)
+        p['statuses'][p['active']] = status
 
     def get_hand_value(self, hand):
-        # Calculate the score, handling Aces (1 or 11)
-        score = 0
-        ace_count = 0
-
-        for card in hand:
-            rank = card[0]
-
+        score, aces = 0, 0
+        for rank, _ in hand:
             if rank == 'Ace':
-                ace_count += 1
-
-            value = self.rank_values[rank]
-            score += value
-
-            while score > 21 and ace_count > 0:
-                score -= 10
-                ace_count -= 1 
-
+                aces += 1
+            score += self.rank_values[rank]
+        while score > 21 and aces:
+            score -= 10
+            aces -= 1
         return score
-  
+
+    def is_natural_blackjack(self, user_id):
+        """True if the player's first hand is a 2-card 21."""
+        hand = self._p(user_id)['hands'][0]
+        return len(hand) == 2 and self.get_hand_value(hand) == 21
+
+    # ── actions ──────────────────────────────────────────────────────────────
+
+    def hit(self, user_id):
+        """Draw one card onto the active hand. Returns (hand, score, busted)."""
+        p = self._p(user_id)
+        idx = p['active']
+        p['hands'][idx].append(self.deck.pop())
+        score = self.get_hand_value(p['hands'][idx])
+        p['scores'][idx] = score
+        busted = score > 21
+        if busted:
+            p['statuses'][idx] = 'busted'
+        return p['hands'][idx], score, busted
+
+    def stand(self, user_id):
+        """Stand the active hand."""
+        self._set_active_status(user_id, 'stood')
+        p = self._p(user_id)
+        return p['scores'][p['active']]
+
+    def can_double(self, user_id):
+        """True if active hand has exactly 2 cards and is still playing."""
+        p = self._p(user_id)
+        idx = p['active']
+        return len(p['hands'][idx]) == 2 and p['statuses'][idx] == 'playing'
+
+    def double_down(self, user_id):
+        """Draw one card and auto-stand. Returns (hand, score, busted)."""
+        p = self._p(user_id)
+        idx = p['active']
+        p['hands'][idx].append(self.deck.pop())
+        score = self.get_hand_value(p['hands'][idx])
+        p['scores'][idx] = score
+        busted = score > 21
+        p['statuses'][idx] = 'busted' if busted else 'doubled'
+        return p['hands'][idx], score, busted
+
+    def can_split(self, user_id):
+        """True if active hand has 2 cards of the same rank."""
+        p = self._p(user_id)
+        idx = p['active']
+        hand = p['hands'][idx]
+        return (len(hand) == 2
+                and hand[0][0] == hand[1][0]
+                and p['statuses'][idx] == 'playing')
+
+    def do_split(self, user_id):
+        """Split the active hand into two hands. Returns (hand1, hand2)."""
+        p = self._p(user_id)
+        idx = p['active']
+        card_a, card_b = p['hands'][idx]
+        hand1 = [card_a, self.deck.pop()]
+        hand2 = [card_b, self.deck.pop()]
+        # Replace current slot, insert second hand right after
+        p['hands'][idx]    = hand1
+        p['scores'][idx]   = self.get_hand_value(hand1)
+        p['statuses'][idx] = 'playing'
+        p['hands'].insert(idx + 1, hand2)
+        p['scores'].insert(idx + 1, self.get_hand_value(hand2))
+        p['statuses'].insert(idx + 1, 'playing')
+        return hand1, hand2
+
+    def advance_hand(self, user_id):
+        """Move to the next hand after the current is done. Returns True if more hands remain."""
+        p = self._p(user_id)
+        if p['active'] < len(p['hands']) - 1:
+            p['active'] += 1
+            return True
+        return False
+
+    # ── round management ─────────────────────────────────────────────────────
+
     def dealer_play(self):
-        # Logic for the dealer to hit until 17 or more
         score = self.get_hand_value(self.dealer_hand)
-
         while score < 17:
-            new_card = self.deck.pop()
-            self.dealer_hand.append(new_card)
+            self.dealer_hand.append(self.deck.pop())
             score = self.get_hand_value(self.dealer_hand)
-
         return score
-    
+
     def everyone_is_done(self):
-        # Check if all players have either busted or stood
-        for user_id, data in self.players.items():
-            status = data[1]
-            if status == "playing":
+        for p in self.players.values():
+            if 'playing' in p['statuses']:
                 return False
         return True
-    
+
     def reset_round(self):
-        # Check deck and refill if needed
         if len(self.deck) < 15:
             self.deck = self._create_shuffled_deck()
-        
-        # Reset dealer hand
         self.dealer_hand = [self.deck.pop(), self.deck.pop()]
-        
-        # Reset all players
-        for user_id, data in self.players.items():
-            # Give new hand
-            new_hand = [self.deck.pop(), self.deck.pop()]
-            # Calculate new score
-            new_score = self.get_hand_value(new_hand)
-            # Update player data: [hand, status, score]
-            self.players[user_id] = [new_hand, "playing", new_score]
-    
-    # Formatting for the dealers hidden card
+        for user_id in self.players:
+            hand = [self.deck.pop(), self.deck.pop()]
+            self.players[user_id] = {
+                'hands': [hand],
+                'statuses': ['playing'],
+                'scores': [self.get_hand_value(hand)],
+                'active': 0,
+            }
+
     def display_hand(self, hand, hide_second_card=False):
         if hide_second_card:
-            # Get the first card (tuple)
-            first_card = hand[0] 
-            # Return string: "[RankSuit], [❓]"
-            return f"[{first_card[0]}{first_card[1]}], [{self.hidden_card}]"
-        
-        else:
-            # Join all cards into a string like "[10♥️], [J♣️]"
-            formatted_cards = []
-            for card in hand:
-                formatted_cards.append(f"[{card[0]}{card[1]}]")
-            return ", ".join(formatted_cards)
-        
-        def everyone_is_done(self):
-        # Checks if anyone is still "playing". Returns True if everyone is "stood" or "busted"
-            for player_data in self.players.values():
-                status = player_data[1] # status is the second item
-            if status == "playing":
-                return False 
-            return True
+            return f"[{hand[0][0]}{hand[0][1]}], [{self.hidden_card}]"
+        return ", ".join(f"[{r}{s}]" for r, s in hand)
 
 # Coinflip
 def flip_coin():
@@ -351,8 +414,32 @@ class PokemonBattle:
         return False, None
     
     def cpu_turn(self):
-        # A helper method to force the CPU (always Team B) to take their turn
-        return self.attack_turn("team_b")
+        """Force the CPU (Team B) to take their turn using smart move selection.
+
+        Picks the move with the highest expected damage based on type
+        effectiveness. Adds 25% randomness so it is not perfectly optimal.
+        """
+        from .poke_api import get_type_effectiveness
+
+        attacker = self.get_active("team_b")
+        defender = self.get_active("team_a")
+        available_moves = attacker.get('moves', [{'name': 'Tackle', 'power': 40, 'type': 'normal'}])
+
+        # Score each move by raw power × type effectiveness
+        best_index = 0
+        best_score = -1
+        for i, move in enumerate(available_moves):
+            effectiveness = get_type_effectiveness(move['type'], defender.get('types', ['normal']))
+            score = move['power'] * effectiveness
+            if score > best_score:
+                best_score = score
+                best_index = i
+
+        # 25 % chance to pick randomly so the CPU is not perfectly optimal
+        if random.random() < 0.25:
+            best_index = random.randint(0, len(available_moves) - 1)
+
+        return self.attack_turn("team_b", best_index)
 
 # === Standalone Game Functions ===
 
@@ -545,14 +632,24 @@ class TicTacToeGame:
         return False
     
     def get_board_display(self):
-        """Return formatted board string"""
-        board_str = "```\n"
-        board_str += f" {self.board[0]} │ {self.board[1]} │ {self.board[2]} \n"
-        board_str += "───┼───┼───\n"
-        board_str += f" {self.board[3]} │ {self.board[4]} │ {self.board[5]} \n"
-        board_str += "───┼───┼───\n"
-        board_str += f" {self.board[6]} │ {self.board[7]} │ {self.board[8]} \n"
-        board_str += "```"
+        """Return formatted board string.
+
+        Empty squares show a number emoji (1️⃣–9️⃣) so players can see
+        which position to type. All symbols (❌, ⭕, number emoji) are
+        rendered at the same width by Discord, keeping the grid aligned.
+        """
+        NUMBERS = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣"]
+
+        def cell(i):
+            val = self.board[i]
+            return val if val != " " else NUMBERS[i]
+
+        sep = "➖➖➖➖➖"
+        board_str  = f"{cell(0)} {cell(1)} {cell(2)}\n"
+        board_str += f"{sep}\n"
+        board_str += f"{cell(3)} {cell(4)} {cell(5)}\n"
+        board_str += f"{sep}\n"
+        board_str += f"{cell(6)} {cell(7)} {cell(8)}\n"
         return board_str
 
 # === Connect Four Game ===

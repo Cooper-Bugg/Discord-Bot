@@ -5,7 +5,6 @@ Utility and informational commands:
 - ping: Test bot responsiveness
 - commands: List all available commands
 - purge: Delete messages from channel (moderation)
-- translate: Translate text to another language
 - serverinfo: Display server statistics
 - userinfo: Display user profile information
 - avatar: Display user's avatar in full size
@@ -20,7 +19,6 @@ import discord
 from discord.ext import commands
 import asyncio
 import random
-import aiohttp
 
 
 class Utility(commands.Cog):
@@ -45,24 +43,25 @@ class Utility(commands.Cog):
 **🤖 Bugg Bot Commands**
 
 **Utility:** 
-`!ping` `!commands` `!purge [amount]` `!translate <lang> <text>`
+`!ping` `!commands` `!purge [amount]`
 `!serverinfo` `!userinfo [@user]` `!avatar [@user]` `!fakeping @user`
 
 **Monitoring:**
-`!metrics` `!lasterror` `!health` `!shardinfo` `!ratelimit` `!market <item>`
+`!metrics` `!lasterror` `!health` `!shardinfo` `!ratelimit`
 
 **Games:**
 `!coinflip` `!roll [dice]` `!8ball <question>` `!random [args]`
 `!slots` `!roulette` `!duel @user` `!mock [text]`
 
 **Board Games:**
-`!blackjack` `!deathroll` `!tictactoe @user` `!connect4 @user`
+`!blackjack` `!deathroll <number>` `!tictactoe @user` `!connect4 @user`
+**Blackjack actions:** `!hit` `!stand` `!double` `!split` `!hands` `!deal` `!join` `!quit`
 
 **Word Games:**
 `!hangman [category]` `!wordle` `!akinator` `!typerace`
 
 **Pokémon:**
-`!battle [difficulty]` `!challenge @user` `!attack [move]` `!flee`
+`!battle [pokemon] [difficulty]` `!challenge @user` `!attack [move]` `!flee`
 
 **APIs:**
 `!weather <city>` `!space [date]` `!trivia`
@@ -84,43 +83,6 @@ class Utility(commands.Cog):
         
         # Send a confirmation that deletes itself after 3 seconds so it doesn't clutter chat
         await ctx.send(f"🧹 Cleared {amount} messages.", delete_after=3)
-    
-    @commands.command()
-    async def translate(self, ctx, target_lang: str, *, text: str):
-        """ Translate text to another language (e.g., !translate es Hello world) """
-        try:
-            # Use Google Translate API via googletrans library
-            # Language codes: en (English), es (Spanish), fr (French), de (German), ja (Japanese), etc.
-            url = "https://translate.googleapis.com/translate_a/single"
-            params = {
-                "client": "gtx",
-                "sl": "auto",  # Auto-detect source language
-                "tl": target_lang,
-                "dt": "t",
-                "q": text
-            }
-            
-            async with aiohttp.ClientSession() as session:
-                async with session.get(url, params=params) as response:
-                    if response.status == 200:
-                        data = await response.json()
-                        # Extract translated text from nested response
-                        translated = ""
-                        for sentence in data[0]:
-                            if sentence[0]:
-                                translated += sentence[0]
-                        
-                        # Create embed for clean display
-                        embed = discord.Embed(title="🌐 Translation", color=discord.Color.blue())
-                        embed.add_field(name="Original", value=text, inline=False)
-                        embed.add_field(name=f"Translated ({target_lang})", value=translated, inline=False)
-                        embed.set_footer(text="Common codes: en, es, fr, de, ja, ko, zh-CN, pt, ru, ar, hi")
-                        await ctx.send(embed=embed)
-                    else:
-                        await ctx.send(f"❌ Translation failed! Make sure the language code is valid.\n"
-                                      f"Examples: `en` (English), `es` (Spanish), `fr` (French), `de` (German)")
-        except Exception as e:
-            await ctx.send(f"❌ Translation error: {e}\nExample usage: `!translate es Hello world`")
     
     @commands.command()
     async def serverinfo(self, ctx):

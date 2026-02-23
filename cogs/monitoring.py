@@ -7,8 +7,6 @@ Bot monitoring and diagnostic commands:
 - health: Checks latency and system status
 - shardinfo: Displays horizontal scaling info
 - ratelimit: Test command to demonstrate cooldowns
-- market: Fetches CS:GO item prices from Steam Market
-
 This cog also handles:
 - on_command_completion: Tracks command usage statistics
 - on_command_error: Captures error traces and provides user-friendly messages
@@ -25,9 +23,6 @@ import time
 import traceback
 from collections import Counter
 import datetime
-import urllib.parse
-import aiohttp
-
 
 class Monitoring(commands.Cog):
     """Bot monitoring and diagnostics"""
@@ -156,51 +151,6 @@ class Monitoring(commands.Cog):
         """ A test command to demonstrate cooldowns """
         await ctx.send(f"✅ Command successful! Try using it again immediately to see the error.")
     
-    @commands.command()
-    @commands.cooldown(1, 10, commands.BucketType.user)  # Prevent getting IP banned by Steam
-    async def market(self, ctx, *, item_name: str):
-        """
-        Fetches price for a CS:GO item.
-        Usage: !market AK-47 | Redline (Field-Tested)
-        """
-        # The App ID for Counter-Strike 2 is 730
-        app_id = 730 
-        
-        # URL Encode the item name to handle spaces and special characters safely
-        encoded_name = urllib.parse.quote(item_name)
-        
-        # Construct the endpoint URL for the Steam Community Market
-        url = f"http://steamcommunity.com/market/priceoverview/?currency=1&appid={app_id}&market_hash_name={encoded_name}"
-
-        await ctx.send(f"🔎 Searching Steam Market for **{item_name}**...")
-
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as response:
-                # Check if Steam blocked the request or the item does not exist
-                if response.status != 200:
-                    await ctx.send("❌ Steam blocked the request or item not found.")
-                    return
-                
-                data = await response.json()
-                
-                # Verify the response contains the price data we need
-                if not data or 'lowest_price' not in data:
-                    await ctx.send("❌ Item not found! Make sure the name is EXACT (including condition).")
-                    return
-
-                # Extract price data with default fallbacks
-                price = data.get('lowest_price', 'N/A')
-                volume = data.get('volume', '0')
-                median = data.get('median_price', 'N/A')
-
-                embed = discord.Embed(title=f"💸 Market: {item_name}", color=discord.Color.dark_green())
-                embed.add_field(name="Lowest Price", value=price, inline=True)
-                embed.add_field(name="Median Price", value=median, inline=True)
-                embed.add_field(name="24h Volume", value=f"{volume} sold", inline=False)
-                embed.set_footer(text="Data from Steam Community Market")
-                
-                await ctx.send(embed=embed)
-
 
 async def setup(bot):
     await bot.add_cog(Monitoring(bot))
